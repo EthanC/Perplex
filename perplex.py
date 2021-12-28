@@ -6,13 +6,13 @@ from sys import exit, stderr
 from time import sleep
 from typing import Any, Dict, List, Optional, Union
 
+import httpx
+from httpx import Response
 from loguru import logger
 from plexapi.media import Media
 from plexapi.myplex import MyPlexAccount, MyPlexResource, PlexServer
 from plexapi.video import Episode, Movie
 from pypresence import Presence
-
-from utils import Utility
 
 
 class Perplex:
@@ -113,9 +113,10 @@ class Perplex:
             password: str = settings["password"]
 
             if settings["twoFactor"] is True:
-                code: Optional[str] = Utility.Prompt(self, "Enter Verification Code")
+                print(f"Enter Verification Code: ", end="")
+                code: str = input()
 
-                if code is None:
+                if (code == "") or (code.isspace()):
                     logger.warning(
                         "Two-Factor Authentication is configured but code was not supplied at login"
                     )
@@ -249,7 +250,7 @@ class Perplex:
         result: Dict[str, Any] = {}
 
         metadata: Optional[Dict[str, Any]] = Perplex.FetchMetadata(
-            self, active.show().title, None, "episode"
+            self, active.show().title, active.show().year, "tv"
         )
 
         result["primary"] = active.show().title
@@ -278,7 +279,7 @@ class Perplex:
         return result
 
     def FetchMetadata(
-        self: Any, title: str, year: Optional[int], format: str
+        self: Any, title: str, year: int, format: str
     ) -> Optional[Dict[str, Any]]:
         """Fetch metadata for the provided title from TMDB."""
 
@@ -290,23 +291,35 @@ class Perplex:
 
             return
 
-        data: Dict[str, Any] = Utility.GET(
-            self,
-            f"https://api.themoviedb.org/3/search/multi?api_key={key}&query={urllib.parse.quote(title)}",
-        )
+        try:
+            res: Response = httpx.get(
+                f"https://api.themoviedb.org/3/search/multi?api_key={key}&query={urllib.parse.quote(title)}"
+            )
+            res.raise_for_status()
+
+            logger.debug(f"(HTTP {res.status_code}) GET {res.url}")
+            logger.trace(res.text)
+        except Exception as e:
+            logger.error(f"Failed to fetch metadata for {title} ({year}), {e}")
+
+            return
+
+        data: Dict[str, Any] = res.json()
 
         for entry in data.get("results", []):
             if format == "movie":
-                if entry["media_type"] != "movie":
+                if entry["media_type"] != format:
                     continue
                 elif title.lower() != entry["title"].lower():
                     continue
                 elif entry["release_date"].startswith(str(year)) is False:
                     continue
-            elif format == "episode":
-                if entry["media_type"] != "tv":
+            elif format == "tv":
+                if entry["media_type"] != format:
                     continue
                 elif title.lower() != entry["name"].lower():
+                    continue
+                elif entry["first_air_date"].startswith(str(year)) is False:
                     continue
 
             return entry
