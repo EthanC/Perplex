@@ -297,12 +297,16 @@ class Perplex:
 
         for entry in data.get("results", []):
             if format == "movie":
-                if title.lower() != entry["title"].lower():
+                if entry["media_type"] != "movie":
+                    continue
+                elif title.lower() != entry["title"].lower():
                     continue
                 elif entry["release_date"].startswith(str(year)) is False:
                     continue
             elif format == "episode":
-                if title.lower() != entry["name"].lower():
+                if entry["media_type"] != "tv":
+                    continue
+                elif title.lower() != entry["name"].lower():
                     continue
 
             return entry
