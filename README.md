@@ -3,7 +3,7 @@
 Perplex is a Discord Rich Presence implementation for Plex.
 
 <p align="center">
-    <img src="https://i.imgur.com/uLX0Gpi.png" draggable="false">
+    <img src="https://i.imgur.com/lGzUmW9.png" draggable="false">
 </p>
 
 ## Features
