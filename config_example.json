@@ -6,7 +6,8 @@
         "username": "example@email.com",
         "password": "password123!",
         "twoFactor": false,
-        "servers": ["My Media Server"]
+        "servers": ["My Media Server"],
+        "users": ["Ethan"]
     },
     "tmdb": {
         "enable": true,

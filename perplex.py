@@ -173,7 +173,7 @@ class Perplex:
 
         for entry in settings["servers"]:
             for result in client.resources():
-                if entry == result.name:
+                if entry.lower() == result.name.lower():
                     resource = result
 
                     break
@@ -196,22 +196,31 @@ class Perplex:
             exit(1)
 
         sessions: List[Media] = server.sessions()
+        active: Optional[Union[Movie, Episode]] = None
 
-        if len(sessions) == 0:
-            logger.info("No active media sessions found")
+        if len(sessions) > 0:
+            i: int = 0
+
+            for entry in settings["users"]:
+                for result in sessions:
+                    if entry.lower() == result.usernames[0].lower():
+                        active = sessions[i]
+
+                        break
+
+                    i += 1
+
+        if active is None:
+            logger.info("No active media sessions found for configured users")
 
             return
-
-        active: Union[Movie, Episode] = sessions[0]
 
         if type(active) is Movie:
             return active
         elif type(active) is Episode:
             return active
 
-        logger.error(
-            f"Fetched active media session of unknown type: {type(sessions[0])}"
-        )
+        logger.error(f"Fetched active media session of unknown type: {type(active)}")
 
     def BuildMoviePresence(self: Any, active: Movie) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active movie session."""
