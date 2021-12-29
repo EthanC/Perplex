@@ -31,17 +31,13 @@ class Perplex:
         self.config: Dict[str, Any] = Perplex.LoadConfig(self)
 
         plex: MyPlexAccount = Perplex.LoginPlex(self)
-
-        discord: Presence = Presence(self.config["discord"]["appId"])
-        discord.connect()
+        discord: Presence = Perplex.LoginDiscord(self)
 
         while True:
             session: Optional[Union[Movie, Episode]] = Perplex.FetchSession(self, plex)
 
             if session is not None:
-                logger.success(
-                    f"Fetched an active media session from the connected Plex Media Server"
-                )
+                logger.success(f"Fetched active media session")
 
                 if type(session) is Movie:
                     status: Dict[str, Any] = Perplex.BuildMoviePresence(self, session)
@@ -52,13 +48,13 @@ class Perplex:
 
                 # Reestablish a failed Discord Rich Presence connection
                 if success is False:
-                    discord.connect()
+                    discord = Perplex.LoginDiscord(self)
             else:
                 discord.clear()
 
             # Presence updates have a rate limit of 1 update per 15 seconds
             # https://discord.com/developers/docs/rich-presence/how-to#updating-presence
-            logger.debug("Sleeping for 15s...")
+            logger.info("Sleeping for 15s...")
 
             sleep(15.0)
 
@@ -72,6 +68,8 @@ class Perplex:
             logger.critical(f"Failed to load configuration, {e}")
 
             exit(1)
+
+        logger.success("Loaded configuration")
 
         return config
 
@@ -106,7 +104,7 @@ class Perplex:
 
                 account = MyPlexAccount(token=auth)
             except Exception as e:
-                logger.error(f"Failed to authenticate with token, {e}")
+                logger.error(f"Failed to authenticate with Plex using token, {e}")
 
         if account is None:
             username: str = settings["username"]
@@ -118,7 +116,7 @@ class Perplex:
 
                 if (code == "") or (code.isspace()):
                     logger.warning(
-                        "Two-Factor Authentication is configured but code was not supplied at login"
+                        "Two-Factor Authentication is enabled but code was not supplied"
                     )
                 else:
                     password = f"{password}{code}"
@@ -136,9 +134,29 @@ class Perplex:
             with open("auth.txt", "w+") as file:
                 file.write(account.authenticationToken)
         except Exception as e:
-            logger.error(f"Failed to save authentication token for future logins, {e}")
+            logger.error(
+                f"Failed to save Plex authentication token for future logins, {e}"
+            )
 
         return account
+
+    def LoginDiscord(self: Any) -> Presence:
+        """Authenticate with Discord using the configured credentials."""
+
+        client: Optional[Presence] = None
+
+        while client is None:
+            try:
+                client = Presence(self.config["discord"]["appId"])
+                client.connect()
+            except Exception as e:
+                logger.error(f"Failed to connect to Discord ({e}) retry in 15s...")
+
+                sleep(15.0)
+
+        logger.success("Authenticated with Discord")
+
+        return client
 
     def FetchSession(
         self: Any, client: MyPlexAccount
@@ -180,9 +198,7 @@ class Perplex:
         sessions: List[Media] = server.sessions()
 
         if len(sessions) == 0:
-            logger.info(
-                "Failed to locate active media session on connected Plex Media Server"
-            )
+            logger.info("No active media sessions found")
 
             return
 
@@ -242,6 +258,8 @@ class Perplex:
         result["remaining"] = int((active.duration / 1000) - (active.viewOffset / 1000))
         result["imageText"] = active.title
 
+        logger.trace(result)
+
         return result
 
     def BuildEpisodePresence(self: Any, active: Episode) -> Dict[str, Any]:
@@ -275,6 +293,8 @@ class Perplex:
             result["buttons"] = [
                 {"label": "TMDB", "url": f"https://themoviedb.org/{mType}/{mId}"}
             ]
+
+        logger.trace(result)
 
         return result
 
@@ -324,9 +344,7 @@ class Perplex:
 
             return entry
 
-        logger.warning(
-            f"Failed to fetch metadata for {title} ({year}), some features will not be available"
-        )
+        logger.warning(f"Could not locate metadata for {title} ({year})")
 
     def SetPresence(
         self: Any, client: Presence, data: Dict[str, Any]
@@ -351,11 +369,11 @@ class Perplex:
                 buttons=data["buttons"],
             )
         except Exception as e:
-            logger.error(f"Failed to set Discord Rich Presence ({title}), {e}")
+            logger.error(f"Failed to set Discord Rich Presence to {title}, {e}")
 
             return False
 
-        logger.success(f"Set Discord Rich Presence ({title})")
+        logger.success(f"Set Discord Rich Presence to {title}")
 
 
 if __name__ == "__main__":
