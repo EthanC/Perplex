@@ -19,6 +19,8 @@ Perplex is a Discord Rich Presence implementation for Plex.
 
 Perplex requires Python 3.10 or greater. Required dependencies can be found in [`pyproject.toml`](https://github.com/EthanC/Perplex/blob/main/pyproject.toml).
 
+Requirements can be installed with `pip install -r requirements.txt` as well.
+
 A [TMDB API Key](https://www.themoviedb.org/settings/api) is required to enable media art and external information.
 
 ## Usage
