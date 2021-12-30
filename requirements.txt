@@ -1,0 +1,4 @@
+loguru==0.5.3
+PlexAPI==4.8.0
+httpx==0.21.1
+pypresence==4.2.1
