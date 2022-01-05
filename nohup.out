@@ -163,3 +163,23 @@ TypeError: 'NoneType' object is not subscriptable
 2022-01-04 22:28:15.039 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
 2022-01-04 22:28:15.084 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Stone Cold 369
 2022-01-04 22:28:15.084 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:28:30.625 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:28:31.057 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Alain%20Goraguer%20AND%20recording:Deshominisation%20(I)&fmt=json
+2022-01-04 22:28:31.071 | WARNING  | __main__:FetchMusicMetadata:365 - Could not locate metadata for Deshominisation (I)
+2022-01-04 22:28:31.094 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Deshominisation (I)
+2022-01-04 22:28:31.094 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:28:46.580 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:28:47.023 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Alain%20Goraguer%20AND%20recording:Deshominisation%20(I)&fmt=json
+2022-01-04 22:28:47.024 | WARNING  | __main__:FetchMusicMetadata:365 - Could not locate metadata for Deshominisation (I)
+2022-01-04 22:28:47.062 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Deshominisation (I)
+2022-01-04 22:28:47.062 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:29:02.811 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:29:03.250 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Alain%20Goraguer%20AND%20recording:Deshominisation%20(I)&fmt=json
+2022-01-04 22:29:03.255 | WARNING  | __main__:FetchMusicMetadata:365 - Could not locate metadata for Deshominisation (I)
+2022-01-04 22:29:03.286 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Deshominisation (I)
+2022-01-04 22:29:03.286 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:29:18.889 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:29:19.339 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Alain%20Goraguer%20AND%20recording:Deshominisation%20(I)&fmt=json
+2022-01-04 22:29:19.340 | WARNING  | __main__:FetchMusicMetadata:365 - Could not locate metadata for Deshominisation (I)
+2022-01-04 22:29:19.378 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Deshominisation (I)
+2022-01-04 22:29:19.378 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
