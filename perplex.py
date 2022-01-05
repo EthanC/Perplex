@@ -12,6 +12,7 @@ from loguru import logger
 from plexapi.media import Media
 from plexapi.myplex import MyPlexAccount, MyPlexResource, PlexServer
 from plexapi.video import Episode, Movie
+from plexapi.audio import Track
 from pypresence import Presence
 
 
@@ -34,7 +35,9 @@ class Perplex:
         discord: Presence = Perplex.LoginDiscord(self)
 
         while True:
-            session: Optional[Union[Movie, Episode]] = Perplex.FetchSession(self, plex)
+            session: Optional[Union[Movie, Episode, Track]] = Perplex.FetchSession(
+                self, plex
+            )
 
             if session is not None:
                 logger.success(f"Fetched active media session")
@@ -43,7 +46,8 @@ class Perplex:
                     status: Dict[str, Any] = Perplex.BuildMoviePresence(self, session)
                 elif type(session) is Episode:
                     status: Dict[str, Any] = Perplex.BuildEpisodePresence(self, session)
-
+                elif type(session) is Track:
+                    status: Dict[str, Any] = Perplex.BuildTrackPresence(self, session)
                 success: Optional[bool] = Perplex.SetPresence(self, discord, status)
 
                 # Reestablish a failed Discord Rich Presence connection
@@ -160,7 +164,7 @@ class Perplex:
 
     def FetchSession(
         self: Any, client: MyPlexAccount
-    ) -> Optional[Union[Movie, Episode]]:
+    ) -> Optional[Union[Movie, Episode, Track]]:
         """
         Connect to the configured Plex Media Server and return the active
         media session.
@@ -175,7 +179,6 @@ class Perplex:
             for result in client.resources():
                 if entry.lower() == result.name.lower():
                     resource = result
-
                     break
 
             if resource is not None:
@@ -196,7 +199,7 @@ class Perplex:
             exit(1)
 
         sessions: List[Media] = server.sessions()
-        active: Optional[Union[Movie, Episode]] = None
+        active: Optional[Union[Movie, Episode, Track]] = None
 
         if len(sessions) > 0:
             i: int = 0
@@ -219,7 +222,8 @@ class Perplex:
             return active
         elif type(active) is Episode:
             return active
-
+        elif type(active) is Track:
+            return active
         logger.error(f"Fetched active media session of unknown type: {type(active)}")
 
     def BuildMoviePresence(self: Any, active: Movie) -> Dict[str, Any]:
@@ -271,6 +275,24 @@ class Perplex:
 
         return result
 
+    def BuildTrackPresence(self: Any, active: Track) -> Dict[str, Any]:
+        """Build a Discord Rich Presence status for the active track session."""
+
+        result: Dict[str, Any] = {}
+
+        metadata: Optional[Dict[str, Any]] = Perplex.FetchMusicMetadata(
+            self, active.title, active.artist().title, active.album().title
+        )
+
+        result["primary"] = active.title
+        result["secondary"] = active.artist().title
+        result["remaining"] = int((active.duration / 1000) - (active.viewOffset / 1000))
+        result["imageText"] = active.title
+        result["image"] = "media"
+        result["buttons"] = []
+        logger.trace(result)
+        return result
+
     def BuildEpisodePresence(self: Any, active: Episode) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active episode session."""
 
@@ -306,6 +328,41 @@ class Perplex:
         logger.trace(result)
 
         return result
+
+    def FetchMusicMetadata(
+        self: Any, title: str, artist: str, album: str
+    ) -> Optional[Dict[str, Any]]:
+        """Fetch metadata for the provided track from MusicBrainz."""
+
+        settings: Dict[str, Any] = self.config["musicbrainz"]
+
+        if settings["enable"] is not True:
+            logger.warning(f"MusicBrainz disabled, some features will not be available")
+            return
+
+        try:
+            res: Response = httpx.get(
+                f"http://musicbrainz.org/ws/2/recording/?query=artist:{artist}%20AND%20recording:{title}&fmt=json"
+            )
+            res.raise_for_status()
+
+            logger.debug(f"(HTTP {res.status_code}) GET {res.url}")
+            logger.trace(res.text)
+        except Exception as e:
+            logger.error(f"Failed to fetch metadata for {title} - {artist}, {e}")
+
+            return
+        data: Dict[str, Any] = res.json()
+        for entry in data.get("recordings", []):
+            if entry["title"].lower() != title.lower():
+                print(title, " != ", entry["title"])
+                continue
+            if entry["releases"][0]["title"].lower() != album.lower():
+                print(album, " != ", entry["releases"][0]["title"])
+                continue
+            return entry
+
+        logger.warning(f"Could not locate metadata for {title}")
 
     def FetchMetadata(
         self: Any, title: str, year: int, format: str
@@ -365,7 +422,7 @@ class Perplex:
         data["buttons"].append(
             {"label": "Get Perplex", "url": "https://github.com/EthanC/Perplex"}
         )
-
+        print(data["image"])
         try:
             client.update(
                 details=title,

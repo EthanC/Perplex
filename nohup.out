@@ -1,0 +1,165 @@
+
+  FileNotFoundError
+
+  [Errno 2] No such file or directory: b'/home/zane/.local/bin/perplex.py'
+
+  at /usr/lib/python3.10/os.py:607 in _execvpe
+       603│         path_list = map(fsencode, path_list)
+       604│     for dir in path_list:
+       605│         fullname = path.join(dir, file)
+       606│         try:
+    →  607│             exec_func(fullname, *argrest)
+       608│         except (FileNotFoundError, NotADirectoryError) as e:
+       609│             last_exc = e
+       610│         except OSError as e:
+       611│             last_exc = e
+2022-01-04 22:16:59.053 | INFO     | __main__:Initialize:29 - Perplex
+2022-01-04 22:16:59.053 | INFO     | __main__:Initialize:30 - https://github.com/EthanC/Perplex
+2022-01-04 22:16:59.053 | SUCCESS  | __main__:LoadConfig:76 - Loaded configuration
+2022-01-04 22:16:59.717 | SUCCESS  | __main__:LoginPlex:135 - Authenticated with Plex
+2022-01-04 22:16:59.852 | SUCCESS  | __main__:LoginDiscord:161 - Authenticated with Discord
+2022-01-04 22:17:00.627 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:17:01.155 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Ki%20Oni%20AND%20recording:Floating%20With%20An%20Elephant,%20Seal&fmt=json
+2022-01-04 22:17:03.450 | DEBUG    | __main__:BuildTrackPresence:305 - (HTTP 200) GET https://ia904506.us.archive.org/21/items/mbid-211046ff-e9fa-4749-bc95-89aa04b35464/index.json
+2022-01-04 22:17:03.459 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Floating With An Elephant, Seal
+2022-01-04 22:17:03.459 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:17:48.930 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:17:49.329 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Ki%20Oni%20AND%20recording:Floating%20With%20An%20Elephant,%20Seal&fmt=json
+2022-01-04 22:17:50.514 | DEBUG    | __main__:BuildTrackPresence:305 - (HTTP 200) GET https://ia804506.us.archive.org/21/items/mbid-211046ff-e9fa-4749-bc95-89aa04b35464/index.json
+2022-01-04 22:17:50.517 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Floating With An Elephant, Seal
+2022-01-04 22:17:50.517 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:18:06.132 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:18:06.612 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Minami%20Deutsch%20AND%20recording:Concrete%20Ocean&fmt=json
+2022-01-04 22:18:07.373 | ERROR    | __main__:BuildTrackPresence:308 - Failed to fetch image for Concrete Ocean, Client error '404 NOT FOUND' for url 'https://coverartarchive.org/release/e1ec37ed-d67c-4948-83eb-95ad50f8f857'
+For more information check: https://httpstatuses.com/404
+211046ff-e9fa-4749-bc95-89aa04b35464
+http://coverartarchive.org/release/211046ff-e9fa-4749-bc95-89aa04b35464/29329908388-250.jpg
+211046ff-e9fa-4749-bc95-89aa04b35464
+http://coverartarchive.org/release/211046ff-e9fa-4749-bc95-89aa04b35464/29329908388-250.jpg
+e1ec37ed-d67c-4948-83eb-95ad50f8f857
+Traceback (most recent call last):
+  File "/home/zane/Projects/perplex/perplex.py", line 473, in <module>
+    Perplex.Initialize(Perplex)
+  File "/home/zane/Projects/perplex/perplex.py", line 51, in Initialize
+    success: Optional[bool] = Perplex.SetPresence(self, discord, status)
+  File "/home/zane/Projects/perplex/perplex.py", line 448, in SetPresence
+    title: str = data["primary"]
+TypeError: 'NoneType' object is not subscriptable
+2022-01-04 22:20:22.422 | INFO     | __main__:Initialize:29 - Perplex
+2022-01-04 22:20:22.422 | INFO     | __main__:Initialize:30 - https://github.com/EthanC/Perplex
+2022-01-04 22:20:22.422 | SUCCESS  | __main__:LoadConfig:76 - Loaded configuration
+2022-01-04 22:20:23.094 | SUCCESS  | __main__:LoginPlex:135 - Authenticated with Plex
+2022-01-04 22:20:23.232 | SUCCESS  | __main__:LoginDiscord:161 - Authenticated with Discord
+2022-01-04 22:20:24.021 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:20:24.476 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Minami%20Deutsch%20AND%20recording:Concrete%20Ocean&fmt=json
+2022-01-04 22:20:24.529 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Concrete Ocean
+2022-01-04 22:20:24.529 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:20:40.085 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:20:40.515 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Minami%20Deutsch%20AND%20recording:Concrete%20Ocean&fmt=json
+2022-01-04 22:20:40.554 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Concrete Ocean
+2022-01-04 22:20:40.554 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:20:56.240 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:20:56.680 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Minami%20Deutsch%20AND%20recording:Concrete%20Ocean&fmt=json
+2022-01-04 22:20:56.721 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Concrete Ocean
+2022-01-04 22:20:56.721 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:21:12.343 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:21:12.824 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Minami%20Deutsch%20AND%20recording:Concrete%20Ocean&fmt=json
+2022-01-04 22:21:12.867 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Concrete Ocean
+2022-01-04 22:21:12.867 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:21:28.466 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:21:28.916 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Minami%20Deutsch%20AND%20recording:Concrete%20Ocean&fmt=json
+2022-01-04 22:21:28.949 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Concrete Ocean
+2022-01-04 22:21:28.949 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:21:44.798 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:21:45.300 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Minami%20Deutsch%20AND%20recording:Concrete%20Ocean&fmt=json
+2022-01-04 22:21:45.342 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Concrete Ocean
+2022-01-04 22:21:45.342 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:22:00.892 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:22:01.402 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Minami%20Deutsch%20AND%20recording:Concrete%20Ocean&fmt=json
+2022-01-04 22:22:01.446 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Concrete Ocean
+2022-01-04 22:22:01.446 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:22:17.111 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:22:17.547 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Minami%20Deutsch%20AND%20recording:Concrete%20Ocean&fmt=json
+2022-01-04 22:22:17.589 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Concrete Ocean
+2022-01-04 22:22:17.589 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:22:33.170 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:22:33.583 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Minami%20Deutsch%20AND%20recording:Concrete%20Ocean&fmt=json
+2022-01-04 22:22:33.623 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Concrete Ocean
+2022-01-04 22:22:33.623 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:22:49.546 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:22:50.062 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:22:50.122 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:22:50.122 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:23:05.682 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:23:06.132 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:23:06.180 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:23:06.181 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:23:21.669 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:23:22.116 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:23:22.168 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:23:22.168 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:24:07.582 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:24:08.030 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:24:08.083 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:24:08.084 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:24:23.979 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:24:24.430 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:24:24.495 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:24:24.495 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:24:39.986 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:24:40.429 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:24:40.480 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:24:40.480 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:24:56.086 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:24:56.525 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:24:56.568 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:24:56.568 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:25:12.207 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:25:12.666 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:25:12.718 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:25:12.719 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:25:28.307 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:25:28.758 | DEBUG    | __main__:FetchMusicMetadata:377 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:25:28.809 | SUCCESS  | __main__:SetPresence:468 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:25:28.809 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:26:04.205 | INFO     | __main__:Initialize:29 - Perplex
+2022-01-04 22:26:04.205 | INFO     | __main__:Initialize:30 - https://github.com/EthanC/Perplex
+2022-01-04 22:26:04.205 | SUCCESS  | __main__:LoadConfig:76 - Loaded configuration
+2022-01-04 22:26:04.877 | SUCCESS  | __main__:LoginPlex:135 - Authenticated with Plex
+2022-01-04 22:26:05.018 | SUCCESS  | __main__:LoginDiscord:161 - Authenticated with Discord
+2022-01-04 22:26:05.514 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:26:05.974 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:26:06.048 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:26:06.048 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:26:21.703 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:26:22.151 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:26:22.195 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:26:22.195 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:26:37.812 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:26:38.313 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:26:38.377 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:26:38.377 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:26:53.924 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:26:54.353 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:26:54.398 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:26:54.398 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:27:09.940 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:27:10.368 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:27:10.419 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:27:10.419 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:27:26.412 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:27:26.867 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:27:26.920 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:27:26.920 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:27:42.404 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:27:42.832 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:27:42.866 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:27:42.866 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:27:58.420 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:27:58.869 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:27:58.916 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:27:58.916 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
+2022-01-04 22:28:14.564 | SUCCESS  | __main__:Initialize:43 - Fetched active media session
+2022-01-04 22:28:15.039 | DEBUG    | __main__:FetchMusicMetadata:349 - (HTTP 200) GET http://musicbrainz.org/ws/2/recording/?query=artist:Skee%20Mask%20AND%20recording:Stone%20Cold%20369&fmt=json
+2022-01-04 22:28:15.084 | SUCCESS  | __main__:SetPresence:440 - Set Discord Rich Presence to Stone Cold 369
+2022-01-04 22:28:15.084 | INFO     | __main__:Initialize:61 - Sleeping for 15s...
