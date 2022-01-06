@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 import httpx
 from httpx import Response
 from loguru import logger
+from plexapi.audio import Track
 from plexapi.media import Media
 from plexapi.myplex import MyPlexAccount, MyPlexResource, PlexServer
 from plexapi.video import Episode, Movie
@@ -47,7 +48,9 @@ class Perplex:
                 elif type(session) is Episode:
                     status: Dict[str, Any] = Perplex.BuildEpisodePresence(self, session)
                 elif type(session) is Track:
+
                     status: Dict[str, Any] = Perplex.BuildTrackPresence(self, session)
+
                 success: Optional[bool] = Perplex.SetPresence(self, discord, status)
 
                 # Reestablish a failed Discord Rich Presence connection
@@ -206,7 +209,7 @@ class Perplex:
 
             for entry in settings["users"]:
                 for result in sessions:
-                    if entry.lower() == result.usernames[0].lower():
+                    if entry.lower() in [alias.lower() for alias in result.usernames]:
                         active = sessions[i]
 
                         break
@@ -224,6 +227,7 @@ class Perplex:
             return active
         elif type(active) is Track:
             return active
+
         logger.error(f"Fetched active media session of unknown type: {type(active)}")
 
     def BuildMoviePresence(self: Any, active: Movie) -> Dict[str, Any]:
@@ -255,7 +259,7 @@ class Perplex:
 
         if metadata is None:
             # Default to image uploaded via Discord Developer Portal
-            result["image"] = "media"
+            result["image"] = "movie"
             result["buttons"] = []
         else:
             mId: int = metadata["id"]
@@ -312,7 +316,7 @@ class Perplex:
 
         if metadata is None:
             # Default to image uploaded via Discord Developer Portal
-            result["image"] = "media"
+            result["image"] = "tv"
             result["buttons"] = []
         else:
             mId: int = metadata["id"]
@@ -328,6 +332,7 @@ class Perplex:
         logger.trace(result)
 
         return result
+
 
     def FetchMusicMetadata(
         self: Any, title: str, artist: str, album: str
@@ -363,6 +368,7 @@ class Perplex:
             return entry
 
         logger.warning(f"Could not locate metadata for {title}")
+
 
     def FetchMetadata(
         self: Any, title: str, year: int, format: str
