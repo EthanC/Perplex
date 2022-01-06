@@ -8,7 +8,7 @@ Perplex is a Discord Rich Presence implementation for Plex.
 
 ## Features
 
--   Modern and beautiful Rich Presence for both movies and TV shows
+-   Modern and beautiful Rich Presence for moviesm, TV shows, and music
 -   The Movie Database (TMDB) integration for enhanced media information
 -   Optional minimal mode for Rich Presence to hide granular information
 -   Lightweight console application that runs in the background

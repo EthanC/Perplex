@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 import httpx
 from httpx import Response
 from loguru import logger
+from plexapi.audio import Track
 from plexapi.media import Media
 from plexapi.myplex import MyPlexAccount, MyPlexResource, PlexServer
 from plexapi.video import Episode, Movie
@@ -43,6 +44,8 @@ class Perplex:
                     status: Dict[str, Any] = Perplex.BuildMoviePresence(self, session)
                 elif type(session) is Episode:
                     status: Dict[str, Any] = Perplex.BuildEpisodePresence(self, session)
+                elif type(session) is Track:
+                    status: Dict[str, Any] = Perplex.BuildMusicPresence(self, session)
 
                 success: Optional[bool] = Perplex.SetPresence(self, discord, status)
 
@@ -203,7 +206,7 @@ class Perplex:
 
             for entry in settings["users"]:
                 for result in sessions:
-                    if entry.lower() == result.usernames[0].lower():
+                    if entry.lower() in [alias.lower() for alias in result.usernames]:
                         active = sessions[i]
 
                         break
@@ -218,6 +221,8 @@ class Perplex:
         if type(active) is Movie:
             return active
         elif type(active) is Episode:
+            return active
+        elif type(active) is Track:
             return active
 
         logger.error(f"Fetched active media session of unknown type: {type(active)}")
@@ -251,7 +256,7 @@ class Perplex:
 
         if metadata is None:
             # Default to image uploaded via Discord Developer Portal
-            result["image"] = "media"
+            result["image"] = "movie"
             result["buttons"] = []
         else:
             mId: int = metadata["id"]
@@ -290,7 +295,7 @@ class Perplex:
 
         if metadata is None:
             # Default to image uploaded via Discord Developer Portal
-            result["image"] = "media"
+            result["image"] = "tv"
             result["buttons"] = []
         else:
             mId: int = metadata["id"]
@@ -302,6 +307,24 @@ class Perplex:
             result["buttons"] = [
                 {"label": "TMDB", "url": f"https://themoviedb.org/{mType}/{mId}"}
             ]
+
+        logger.trace(result)
+
+        return result
+
+    def BuildMusicPresence(self: Any, active: Track) -> Dict[str, Any]:
+        """Build a Discord Rich Presence status for the active music session."""
+
+        result: Dict[str, Any] = {}
+
+        result["primary"] = active.titleSort
+        result["secondary"] = f"by {active.artist().title}"
+        result["remaining"] = int((active.duration / 1000) - (active.viewOffset / 1000))
+        result["imageText"] = active.parentTitle
+
+        # Default to image uploaded via Discord Developer Portal
+        result["image"] = "music"
+        result["buttons"] = []
 
         logger.trace(result)
 
