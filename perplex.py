@@ -35,7 +35,9 @@ class Perplex:
         discord: Presence = Perplex.LoginDiscord(self)
 
         while True:
-            session: Optional[Union[Movie, Episode]] = Perplex.FetchSession(self, plex)
+            session: Optional[Union[Movie, Episode, Track]] = Perplex.FetchSession(
+                self, plex
+            )
 
             if session is not None:
                 logger.success(f"Fetched active media session")
@@ -45,7 +47,7 @@ class Perplex:
                 elif type(session) is Episode:
                     status: Dict[str, Any] = Perplex.BuildEpisodePresence(self, session)
                 elif type(session) is Track:
-                    status: Dict[str, Any] = Perplex.BuildMusicPresence(self, session)
+                    status: Dict[str, Any] = Perplex.BuildTrackPresence(self, session)
 
                 success: Optional[bool] = Perplex.SetPresence(self, discord, status)
 
@@ -163,7 +165,7 @@ class Perplex:
 
     def FetchSession(
         self: Any, client: MyPlexAccount
-    ) -> Optional[Union[Movie, Episode]]:
+    ) -> Optional[Union[Movie, Episode, Track]]:
         """
         Connect to the configured Plex Media Server and return the active
         media session.
@@ -199,7 +201,7 @@ class Perplex:
             exit(1)
 
         sessions: List[Media] = server.sessions()
-        active: Optional[Union[Movie, Episode]] = None
+        active: Optional[Union[Movie, Episode, Track]] = None
 
         if len(sessions) > 0:
             i: int = 0
@@ -312,7 +314,7 @@ class Perplex:
 
         return result
 
-    def BuildMusicPresence(self: Any, active: Track) -> Dict[str, Any]:
+    def BuildTrackPresence(self: Any, active: Track) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active music session."""
 
         result: Dict[str, Any] = {}
