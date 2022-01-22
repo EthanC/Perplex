@@ -260,6 +260,9 @@ class Perplex:
             # Default to image uploaded via Discord Developer Portal
             result["image"] = "movie"
             result["buttons"] = []
+            if self.config["tautulli"]["enable"]:
+                settings: Dict[str, Any] = self.config["tautulli"]
+                result["image"] = f"{settings['url']}/pms_image_proxy?img={active.thumbUrl}"       
         else:
             mId: int = metadata["id"]
             mType: str = metadata["media_type"]
@@ -299,6 +302,9 @@ class Perplex:
             # Default to image uploaded via Discord Developer Portal
             result["image"] = "tv"
             result["buttons"] = []
+            if self.config["tautulli"]["enable"]:
+                settings: Dict[str, Any] = self.config["tautulli"]
+                result["image"] = f"{settings['url']}/pms_image_proxy?img={active.grandparentThumb}"
         else:
             mId: int = metadata["id"]
             mType: str = metadata["media_type"]
@@ -326,6 +332,13 @@ class Perplex:
 
         # Default to image uploaded via Discord Developer Portal
         result["image"] = "music"
+        if self.config["tautulli"]["enable"]:
+            try:
+                settings: Dict[str, Any] = self.config["tautulli"]
+                result["image"] = f"{settings['url']}/pms_image_proxy?img={active.parentThumb}"
+            except:
+                pass
+            
         result["buttons"] = []
 
         logger.trace(result)

@@ -13,6 +13,10 @@
         "enable": true,
         "apiKey": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
     },
+    "tautulli": {
+        "enable": false,
+        "url": "https://example.com"
+    },
     "discord": {
         "appId": 923857760897101855,
         "minimal": false
