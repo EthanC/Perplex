@@ -55,7 +55,10 @@ class Perplex:
                 if success is False:
                     discord = Perplex.LoginDiscord(self)
             else:
-                discord.clear()
+                try:
+                    discord.clear()
+                except Exception:
+                    pass
 
             # Presence updates have a rate limit of 1 update per 15 seconds
             # https://discord.com/developers/docs/rich-presence/how-to#updating-presence
