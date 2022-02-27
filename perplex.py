@@ -31,6 +31,8 @@ class Perplex:
 
         self.config: Dict[str, Any] = Perplex.LoadConfig(self)
 
+        Perplex.SetupLogging(self)
+
         plex: MyPlexAccount = Perplex.LoginPlex(self)
         discord: Presence = Perplex.LoginDiscord(self)
 
