@@ -8,7 +8,7 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.10"
 loguru = "^0.5.3"
-PlexAPI = "^4.8.0"
+PlexAPI = "^4.13.0"
 httpx = "^0.21.1"
 pypresence = "^4.2.1"
 

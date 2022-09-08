@@ -9,10 +9,10 @@ from typing import Any, Dict, List, Optional, Union
 import httpx
 from httpx import Response
 from loguru import logger
-from plexapi.audio import Track
+from plexapi.audio import TrackSession
 from plexapi.media import Media
 from plexapi.myplex import MyPlexAccount, MyPlexResource, PlexServer
-from plexapi.video import Episode, Movie
+from plexapi.video import EpisodeSession, MovieSession
 from pypresence import Presence
 
 
@@ -37,18 +37,18 @@ class Perplex:
         discord: Presence = Perplex.LoginDiscord(self)
 
         while True:
-            session: Optional[Union[Movie, Episode, Track]] = Perplex.FetchSession(
+            session: Optional[Union[MovieSession, EpisodeSession, TrackSession]] = Perplex.FetchSession(
                 self, plex
             )
 
             if session is not None:
                 logger.success(f"Fetched active media session")
 
-                if type(session) is Movie:
+                if type(session) is MovieSession:
                     status: Dict[str, Any] = Perplex.BuildMoviePresence(self, session)
-                elif type(session) is Episode:
+                elif type(session) is EpisodeSession:
                     status: Dict[str, Any] = Perplex.BuildEpisodePresence(self, session)
-                elif type(session) is Track:
+                elif type(session) is TrackSession:
                     status: Dict[str, Any] = Perplex.BuildTrackPresence(self, session)
 
                 success: Optional[bool] = Perplex.SetPresence(self, discord, status)
@@ -170,7 +170,7 @@ class Perplex:
 
     def FetchSession(
         self: Any, client: MyPlexAccount
-    ) -> Optional[Union[Movie, Episode, Track]]:
+    ) -> Optional[Union[MovieSession, EpisodeSession, TrackSession]]:
         """
         Connect to the configured Plex Media Server and return the active
         media session.
@@ -206,7 +206,7 @@ class Perplex:
             exit(1)
 
         sessions: List[Media] = server.sessions()
-        active: Optional[Union[Movie, Episode, Track]] = None
+        active: Optional[Union[MovieSession, EpisodeSession, TrackSession]] = None
 
         if len(sessions) > 0:
             i: int = 0
@@ -225,16 +225,16 @@ class Perplex:
 
             return
 
-        if type(active) is Movie:
+        if type(active) is MovieSession:
             return active
-        elif type(active) is Episode:
+        elif type(active) is EpisodeSession:
             return active
-        elif type(active) is Track:
+        elif type(active) is TrackSession:
             return active
 
         logger.error(f"Fetched active media session of unknown type: {type(active)}")
 
-    def BuildMoviePresence(self: Any, active: Movie) -> Dict[str, Any]:
+    def BuildMoviePresence(self: Any, active: MovieSession) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active movie session."""
 
         minimal: bool = self.config["discord"]["minimal"]
@@ -283,7 +283,7 @@ class Perplex:
 
         return result
 
-    def BuildEpisodePresence(self: Any, active: Episode) -> Dict[str, Any]:
+    def BuildEpisodePresence(self: Any, active: EpisodeSession) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active episode session."""
 
         result: Dict[str, Any] = {}
@@ -319,7 +319,7 @@ class Perplex:
 
         return result
 
-    def BuildTrackPresence(self: Any, active: Track) -> Dict[str, Any]:
+    def BuildTrackPresence(self: Any, active: TrackSession) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active music session."""
 
         result: Dict[str, Any] = {}
