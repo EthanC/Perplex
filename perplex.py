@@ -4,15 +4,15 @@ from datetime import datetime
 from pathlib import Path
 from sys import exit, stderr
 from time import sleep
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Self, Union
 
 import httpx
 from httpx import Response
 from loguru import logger
-from plexapi.audio import Track
+from plexapi.audio import TrackSession
 from plexapi.media import Media
 from plexapi.myplex import MyPlexAccount, MyPlexResource, PlexServer
-from plexapi.video import Episode, Movie
+from plexapi.video import EpisodeSession, MovieSession
 from pypresence import Presence
 
 
@@ -23,7 +23,7 @@ class Perplex:
     https://github.com/EthanC/Perplex
     """
 
-    def Initialize(self: Any) -> None:
+    def Initialize(self: Self) -> None:
         """Initialize Perplex and begin primary functionality."""
 
         logger.info("Perplex")
@@ -37,24 +37,24 @@ class Perplex:
         discord: Presence = Perplex.LoginDiscord(self)
 
         while True:
-            session: Optional[Union[Movie, Episode, Track]] = Perplex.FetchSession(
-                self, plex
-            )
+            session: Optional[
+                Union[MovieSession, EpisodeSession, TrackSession]
+            ] = Perplex.FetchSession(self, plex)
 
-            if session is not None:
+            if session:
                 logger.success(f"Fetched active media session")
 
-                if type(session) is Movie:
+                if type(session) is MovieSession:
                     status: Dict[str, Any] = Perplex.BuildMoviePresence(self, session)
-                elif type(session) is Episode:
+                elif type(session) is EpisodeSession:
                     status: Dict[str, Any] = Perplex.BuildEpisodePresence(self, session)
-                elif type(session) is Track:
+                elif type(session) is TrackSession:
                     status: Dict[str, Any] = Perplex.BuildTrackPresence(self, session)
 
-                success: Optional[bool] = Perplex.SetPresence(self, discord, status)
+                success: bool = Perplex.SetPresence(self, discord, status)
 
                 # Reestablish a failed Discord Rich Presence connection
-                if success is False:
+                if not success:
                     discord = Perplex.LoginDiscord(self)
             else:
                 try:
@@ -68,7 +68,7 @@ class Perplex:
 
             sleep(15.0)
 
-    def LoadConfig(self: Any) -> Dict[str, Any]:
+    def LoadConfig(self: Self) -> Dict[str, Any]:
         """Load the configuration values specified in config.json"""
 
         try:
@@ -83,7 +83,7 @@ class Perplex:
 
         return config
 
-    def SetupLogging(self: Any) -> None:
+    def SetupLogging(self: Self) -> None:
         """Setup the logger using the configured values."""
 
         settings: Dict[str, Any] = self.config["logging"]
@@ -100,14 +100,14 @@ class Perplex:
 
                 logger.error(f"Failed to set logger severity to {level}, {e}")
 
-    def LoginPlex(self: Any) -> MyPlexAccount:
+    def LoginPlex(self: Self) -> MyPlexAccount:
         """Authenticate with Plex using the configured credentials."""
 
         settings: Dict[str, Any] = self.config["plex"]
 
         account: Optional[MyPlexAccount] = None
 
-        if Path("auth.txt").is_file() is True:
+        if Path("auth.txt").is_file():
             try:
                 with open("auth.txt", "r") as file:
                     auth: str = file.read()
@@ -116,11 +116,11 @@ class Perplex:
             except Exception as e:
                 logger.error(f"Failed to authenticate with Plex using token, {e}")
 
-        if account is None:
+        if not account:
             username: str = settings["username"]
             password: str = settings["password"]
 
-            if settings["twoFactor"] is True:
+            if settings["twoFactor"]:
                 print(f"Enter Verification Code: ", end="")
                 code: str = input()
 
@@ -150,12 +150,12 @@ class Perplex:
 
         return account
 
-    def LoginDiscord(self: Any) -> Presence:
+    def LoginDiscord(self: Self) -> Presence:
         """Authenticate with Discord using the configured credentials."""
 
         client: Optional[Presence] = None
 
-        while client is None:
+        while not client:
             try:
                 client = Presence(self.config["discord"]["appId"])
                 client.connect()
@@ -169,8 +169,8 @@ class Perplex:
         return client
 
     def FetchSession(
-        self: Any, client: MyPlexAccount
-    ) -> Optional[Union[Movie, Episode, Track]]:
+        self: Self, client: MyPlexAccount
+    ) -> Optional[Union[MovieSession, EpisodeSession, TrackSession]]:
         """
         Connect to the configured Plex Media Server and return the active
         media session.
@@ -188,10 +188,10 @@ class Perplex:
 
                     break
 
-            if resource is not None:
+            if resource:
                 break
 
-        if resource is None:
+        if not resource:
             logger.critical("Failed to locate configured Plex Media Server")
 
             exit(1)
@@ -206,7 +206,7 @@ class Perplex:
             exit(1)
 
         sessions: List[Media] = server.sessions()
-        active: Optional[Union[Movie, Episode, Track]] = None
+        active: Optional[Union[MovieSession, EpisodeSession, TrackSession]] = None
 
         if len(sessions) > 0:
             i: int = 0
@@ -220,21 +220,21 @@ class Perplex:
 
                     i += 1
 
-        if active is None:
+        if not active:
             logger.info("No active media sessions found for configured users")
 
             return
 
-        if type(active) is Movie:
+        if type(active) is MovieSession:
             return active
-        elif type(active) is Episode:
+        elif type(active) is EpisodeSession:
             return active
-        elif type(active) is Track:
+        elif type(active) is TrackSession:
             return active
 
         logger.error(f"Fetched active media session of unknown type: {type(active)}")
 
-    def BuildMoviePresence(self: Any, active: Movie) -> Dict[str, Any]:
+    def BuildMoviePresence(self: Self, active: MovieSession) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active movie session."""
 
         minimal: bool = self.config["discord"]["minimal"]
@@ -245,7 +245,7 @@ class Perplex:
             self, active.title, active.year, "movie"
         )
 
-        if minimal is True:
+        if minimal:
             result["primary"] = active.title
         else:
             result["primary"] = f"{active.title} ({active.year})"
@@ -261,7 +261,7 @@ class Perplex:
             if len(details) > 1:
                 result["secondary"] = ", ".join(details)
 
-        if metadata is None:
+        if not metadata:
             # Default to image uploaded via Discord Developer Portal
             result["image"] = "movie"
             result["buttons"] = []
@@ -283,7 +283,7 @@ class Perplex:
 
         return result
 
-    def BuildEpisodePresence(self: Any, active: Episode) -> Dict[str, Any]:
+    def BuildEpisodePresence(self: Self, active: EpisodeSession) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active episode session."""
 
         result: Dict[str, Any] = {}
@@ -297,10 +297,10 @@ class Perplex:
         result["remaining"] = int((active.duration / 1000) - (active.viewOffset / 1000))
         result["imageText"] = active.show().title
 
-        if (active.seasonNumber is not None) and (active.episodeNumber is not None):
+        if (active.seasonNumber) and (active.episodeNumber):
             result["secondary"] += f" (S{active.seasonNumber}:E{active.episodeNumber})"
 
-        if metadata is None:
+        if not metadata:
             # Default to image uploaded via Discord Developer Portal
             result["image"] = "tv"
             result["buttons"] = []
@@ -319,7 +319,7 @@ class Perplex:
 
         return result
 
-    def BuildTrackPresence(self: Any, active: Track) -> Dict[str, Any]:
+    def BuildTrackPresence(self: Self, active: TrackSession) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active music session."""
 
         result: Dict[str, Any] = {}
@@ -338,14 +338,14 @@ class Perplex:
         return result
 
     def FetchMetadata(
-        self: Any, title: str, year: int, format: str
+        self: Self, title: str, year: int, format: str
     ) -> Optional[Dict[str, Any]]:
         """Fetch metadata for the provided title from TMDB."""
 
         settings: Dict[str, Any] = self.config["tmdb"]
         key: str = settings["apiKey"]
 
-        if settings["enable"] is not True:
+        if not settings["enable"]:
             logger.warning(f"TMDB disabled, some features will not be available")
 
             return
@@ -371,23 +371,21 @@ class Perplex:
                     continue
                 elif title.lower() != entry["title"].lower():
                     continue
-                elif entry["release_date"].startswith(str(year)) is False:
+                elif not entry["release_date"].startswith(str(year)):
                     continue
             elif format == "tv":
                 if entry["media_type"] != format:
                     continue
                 elif title.lower() != entry["name"].lower():
                     continue
-                elif entry["first_air_date"].startswith(str(year)) is False:
+                elif not entry["first_air_date"].startswith(str(year)):
                     continue
 
             return entry
 
         logger.warning(f"Could not locate metadata for {title} ({year})")
 
-    def SetPresence(
-        self: Any, client: Presence, data: Dict[str, Any]
-    ) -> Optional[bool]:
+    def SetPresence(self: Self, client: Presence, data: Dict[str, Any]) -> bool:
         """Set the Rich Presence status for the provided Discord client."""
 
         title: str = data["primary"]
@@ -413,6 +411,8 @@ class Perplex:
             return False
 
         logger.success(f"Set Discord Rich Presence to {title}")
+
+        return True
 
 
 if __name__ == "__main__":

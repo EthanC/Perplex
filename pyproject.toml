@@ -1,21 +1,21 @@
 [tool.poetry]
 name = "Perplex"
-version = "1.0.0"
+version = "1.0.1"
 description = "Discord Rich Presence implementation for Plex."
 authors = ["Ethan C <16727756+EthanC@users.noreply.github.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.10"
-loguru = "^0.5.3"
-PlexAPI = "^4.8.0"
-httpx = "^0.21.1"
+python = "^3.11"
+loguru = "^0.6.0"
+PlexAPI = "^4.13.2"
+httpx = "^0.23.3"
 pypresence = "^4.2.1"
 
 [tool.poetry.dev-dependencies]
-pylint = "^2.12.2"
-black = "^21.12b0"
+pylint = "^2.16.1"
+black = "^23.1.0"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
