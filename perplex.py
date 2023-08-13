@@ -1,4 +1,5 @@
 import json
+import re
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
@@ -391,6 +392,9 @@ class Perplex:
 
         settings: Dict[str, Any] = self.config["tmdb"]
         key: str = settings["apiKey"]
+
+        # if title has a "(year)" in it, removes it. https://github.com/EthanC/Perplex/issues/21
+        title = re.sub(r"\(\d{4}\)", "", title).strip()
 
         if settings["enable"]:
 
