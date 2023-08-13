@@ -12,7 +12,7 @@ from loguru import logger
 from plexapi.audio import TrackSession
 from plexapi.media import Media
 from plexapi.myplex import MyPlexAccount, MyPlexResource, PlexServer
-from plexapi.video import EpisodeSession, MovieSession, Movie, Episode
+from plexapi.video import EpisodeSession, MovieSession
 from pypresence import Presence
 
 
@@ -36,6 +36,9 @@ class Perplex:
         plex: MyPlexAccount = Perplex.LoginPlex(self)
         discord: Presence = Perplex.LoginDiscord(self)
 
+        Perplex.timer = None
+        Perplex.viewOffset = None
+
         while True:
             session: Optional[
                 Union[MovieSession, EpisodeSession, TrackSession]
@@ -51,6 +54,10 @@ class Perplex:
                 elif type(session) is TrackSession:
                     status: Dict[str, Any] = Perplex.BuildTrackPresence(self, session)
 
+                if Perplex.IsInPause(self, session, plex):
+                    logger.info("Media session is paused")
+                    status: Dict[str, Any] = Perplex.BuildPausePresence(self, session)
+
                 success: bool = Perplex.SetPresence(self, discord, status)
 
                 # Reestablish a failed Discord Rich Presence connection
@@ -59,8 +66,8 @@ class Perplex:
             else:
                 try:
                     discord.clear()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.error(f"An error occured while clearing status, {e}")
 
             # Presence updates have a rate limit of 1 update per 15 seconds
             # https://discord.com/developers/docs/rich-presence/how-to#updating-presence
@@ -174,7 +181,6 @@ class Perplex:
         settings: Dict[str, Any] = self.config["plex"]
 
         resource: Optional[MyPlexResource] = None
-        server: Optional[PlexServer] = None
 
         for entry in settings["servers"]:
             for result in client.resources():
@@ -197,16 +203,6 @@ class Perplex:
             logger.critical(
                 f"Failed to connect to configured Plex Media Server ({resource.name}), {e}"
             )
-
-    def FetchItem(
-        self: Self, ratingkey: int, client: MyPlexAccount
-    ) -> Union[Movie, Episode]:
-        """
-        Fetch the item from the Plex Media Server using the specified rating key and return a Movie or Episode object.
-        """
-
-        server = Perplex.ConnectPlexMediaServer(self, client)
-        return server.fetchItem(ratingkey)
 
     def FetchSession(
         self: Self, client: MyPlexAccount
@@ -247,6 +243,31 @@ class Perplex:
             return active
 
         logger.error(f"Fetched active media session of unknown type: {type(active)}")
+
+    def IsInPause(self: Self, active: Union[MovieSession, EpisodeSession, TrackSession], client: MyPlexAccount) -> bool:
+        """Check if the active media session is paused."""
+        active = Perplex.FetchSession(self, client)
+        if active:
+            result = Perplex.viewOffset == active.viewOffset
+            Perplex.viewOffset = active.viewOffset
+            return result
+
+    def BuildPausePresence(self: Self, active: Union[MovieSession, EpisodeSession, TrackSession]) -> Dict[str, Any]:
+        if isinstance(active, MovieSession):
+            result = Perplex.BuildMoviePresence(self, active)
+        elif isinstance(active, EpisodeSession):
+            result = Perplex.BuildEpisodePresence(self, active)
+        elif isinstance(active, TrackSession):
+            result = Perplex.BuildTrackPresence(self, active)
+        else:
+            logger.error(f"Unknown session type: {type(active)}")
+            return
+
+        progress = active.viewOffset / active.duration * 100
+        result["secondary"] = f"Paused ⏸︎ | {progress:.0f}%/{active.duration / 1000 / 60:.0f} min"
+        result["remaining"] = -1
+
+        return result
 
     def BuildMoviePresence(self: Self, active: MovieSession) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active movie session."""
@@ -372,7 +393,6 @@ class Perplex:
         key: str = settings["apiKey"]
 
         if settings["enable"]:
-            # logger.debug(f"TMDB disabled, some features will not be available")
 
             try:
                 res: Response = httpx.get(
@@ -391,26 +411,25 @@ class Perplex:
 
         session.guids = session.source().guids # https://github.com/pkkid/python-plexapi/issues/1214
 
-        if session.guids and self.config["trakt"]["enabled"] and self.config["trakt"]["apiKey"]: # We fall back on trakt
+        if session.guids and self.config["trakt"]["enabled"] and self.config["trakt"]["clientId"]: # if trakt is enabled we use it
             database: str = session.guids[0].id.split(":")[0]
             guid = session.guids[0].id.split("//")[-1]
             media_type: Literal['episode', 'movie'] = "episode" if isinstance(session, EpisodeSession) else "movie"
-            headers = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": self.config["trakt"]["apiKey"]}
+            headers = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": self.config["trakt"]["clientId"]}
             try:
                 res: Response = httpx.get(
                     f"https://api.trakt.tv/search/{database}/{guid}?type={media_type}", headers=headers
                 )
                 res.raise_for_status()
 
-                res = res.json()
                 logger.debug(f"(HTTP {res.status_code}) GET {res.url}")
                 logger.trace(res.text)
             except Exception as e:
                 logger.error(f"Failed to fetch metadata for {title} ({year}) from Trakt, {e}")
                 res = None
 
-            if res:
-                tmdb_guid: int = res[0]["episode"]["ids"].get("tmdb")
+            if (res:=res.json()):
+                tmdb_guid: int = res[0][media_type]["ids"].get("tmdb")
                 poster_path = None
                 if tmdb_guid:
 
@@ -423,7 +442,7 @@ class Perplex:
                         poster_path = res2.json()["results"][0]["poster_path"]
 
                 # We filter only the needed data with correct key names
-                return {"id": res[0]["episode"]["ids"]["trakt"], "media_type": media_type, "poster_path": poster_path, "trakt": True}
+                return {"id": res[0][media_type]["ids"]["trakt"], "media_type": media_type, "poster_path": poster_path, "trakt": True}
             # else we fallback to default search method
 
 
@@ -466,16 +485,31 @@ class Perplex:
         )
 
         try:
-            client.update(
-                details=title,
-                state=data.get("secondary"),
-                end=int(datetime.now().timestamp() + data["remaining"]),
-                large_image=data["image"],
-                large_text=data["imageText"],
-                small_image="plex",
-                small_text="Plex",
-                buttons=data["buttons"],
-            )
+            if data["remaining"] == -1:
+                if Perplex.timer is None:
+                    Perplex.timer = int(datetime.now().timestamp())
+                client.update(
+                    details=title,
+                    state=data.get("secondary"),
+                    start=Perplex.timer,
+                    large_image=data["image"],
+                    large_text=data["imageText"],
+                    small_image="plex",
+                    small_text="Plex",
+                    buttons=data["buttons"],
+                )
+            else:
+                Perplex.timer = None
+                client.update(
+                    details=title,
+                    state=data.get("secondary"),
+                    end=int(datetime.now().timestamp() + data["remaining"]),
+                    large_image=data["image"],
+                    large_text=data["imageText"],
+                    small_image="plex",
+                    small_text="Plex",
+                    buttons=data["buttons"],
+                )
         except Exception as e:
             logger.error(f"Failed to set Discord Rich Presence to {title}, {e}")
 
