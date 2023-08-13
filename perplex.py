@@ -13,7 +13,7 @@ from loguru import logger
 from plexapi.audio import TrackSession
 from plexapi.media import Media
 from plexapi.myplex import MyPlexAccount, MyPlexResource, PlexServer
-from plexapi.video import EpisodeSession, MovieSession
+from plexapi.video import EpisodeSession, MovieSession, Show
 from pypresence import Presence
 
 
@@ -414,11 +414,11 @@ class Perplex:
         data: Dict[str, Any] = res.json()
 
         session.guids = session.source().guids # https://github.com/pkkid/python-plexapi/issues/1214
+        media_type: Literal['episode', 'movie'] = "episode" if isinstance(session, EpisodeSession) else "movie"
 
         if session.guids and self.config["trakt"]["enabled"] and self.config["trakt"]["clientId"]: # if trakt is enabled we use it
             database: str = session.guids[0].id.split(":")[0]
             guid = session.guids[0].id.split("//")[-1]
-            media_type: Literal['episode', 'movie'] = "episode" if isinstance(session, EpisodeSession) else "movie"
             headers = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": self.config["trakt"]["clientId"]}
             try:
                 res: Response = httpx.get(
@@ -436,14 +436,22 @@ class Perplex:
                 tmdb_guid: int = res[0][media_type]["ids"].get("tmdb")
                 poster_path = None
                 if tmdb_guid:
-
-                    url = f"https://api.themoviedb.org/3/search/{'tv' if media_type == 'episode' else 'movie'}?api_key={key}&query={urllib.parse.quote(title)}&first_air_date_year={year}&include_adult=true&page=1"
+                    if media_type == "episode":
+                        url = f"https://api.themoviedb.org/3/tv/{res[0]['show']['ids']['tmdb']}?api_key={key}"
+                    else:
+                        url = f"https://api.themoviedb.org/3/movie/{tmdb_guid}?api_key={key}"
 
                     res2: Response = httpx.get(url)
                     res2.raise_for_status()
 
-                    if res2.json()["results"]:
-                        poster_path = res2.json()["results"][0]["poster_path"]
+                    if res2.json():
+                        if media_type == "episode":
+                            for season in res2.json()["seasons"]:
+                                if season["season_number"] == res[0]["episode"]["season"]:
+                                    poster_path = season["poster_path"]
+                                    break
+                        else:
+                            poster_path = res2.json()["poster_path"]
 
                 # We filter only the needed data with correct key names
                 return {"id": res[0][media_type]["ids"]["trakt"], "media_type": media_type, "poster_path": poster_path, "trakt": True}
@@ -455,7 +463,24 @@ class Perplex:
 
             return
 
-        tmdb_guid: int = [guid.id.split("//")[-1] for guid in session.guids if "tmdb" in guid.id][0]
+        if tmdb_guid:= [guid.id.split("//")[-1] for guid in session.guids if "tmdb" in guid.id][0]:
+            plex: PlexServer = Perplex.ConnectPlexMediaServer(self, Perplex.LoginPlex(self))
+            show: Show = plex.fetchItem(session.grandparentRatingKey)
+            if media_type == "episode":
+                if tmdb_guid:= [guid.id.split("//")[-1] for guid in show.guids if "tmdb" in guid.id][0]:
+                    url = f"https://api.themoviedb.org/3/tv/{tmdb_guid}?api_key={key}"
+            else:
+                url = f"https://api.themoviedb.org/3/movie/{tmdb_guid}?api_key={key}"
+
+            res: Response = httpx.get(url)
+            res.raise_for_status()
+
+            if res.json():
+                data = {"results": [res.json()]}
+                # we need to add the media_type to the data
+                data["results"][0]["media_type"] = "tv" if media_type == "episode" else "movie"
+        else:
+            tmdb_guid = None
 
         for entry in data.get("results", []):
             if entry["id"] == tmdb_guid: # We found the correct entry
