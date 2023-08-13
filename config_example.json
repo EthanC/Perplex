@@ -13,6 +13,10 @@
         "enable": true,
         "apiKey": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
     },
+    "trakt": {
+        "enabled": true,
+        "clientId": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    },
     "discord": {
         "appId": 923857760897101855,
         "minimal": false

@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from sys import exit, stderr
 from time import sleep
-from typing import Any, Dict, List, Optional, Self, Union
+from typing import Any, Dict, List, Literal, Optional, Self, Union
 
 import httpx
 from httpx import Response
@@ -12,7 +12,7 @@ from loguru import logger
 from plexapi.audio import TrackSession
 from plexapi.media import Media
 from plexapi.myplex import MyPlexAccount, MyPlexResource, PlexServer
-from plexapi.video import EpisodeSession, MovieSession
+from plexapi.video import EpisodeSession, MovieSession, Movie, Episode
 from pypresence import Presence
 
 
@@ -168,14 +168,9 @@ class Perplex:
 
         return client
 
-    def FetchSession(
+    def ConnectPlexMediaServer(
         self: Self, client: MyPlexAccount
-    ) -> Optional[Union[MovieSession, EpisodeSession, TrackSession]]:
-        """
-        Connect to the configured Plex Media Server and return the active
-        media session.
-        """
-
+    ) -> Optional[PlexServer]:
         settings: Dict[str, Any] = self.config["plex"]
 
         resource: Optional[MyPlexResource] = None
@@ -197,13 +192,32 @@ class Perplex:
             exit(1)
 
         try:
-            server = resource.connect()
+            return resource.connect()
         except Exception as e:
             logger.critical(
                 f"Failed to connect to configured Plex Media Server ({resource.name}), {e}"
             )
 
-            exit(1)
+    def FetchItem(
+        self: Self, ratingkey: int, client: MyPlexAccount
+    ) -> Union[Movie, Episode]:
+        """
+        Fetch the item from the Plex Media Server using the specified rating key and return a Movie or Episode object.
+        """
+
+        server = Perplex.ConnectPlexMediaServer(self, client)
+        return server.fetchItem(ratingkey)
+
+    def FetchSession(
+        self: Self, client: MyPlexAccount
+    ) -> Optional[Union[MovieSession, EpisodeSession, TrackSession]]:
+        """
+        Connect to the configured Plex Media Server and return the active
+        media session.
+        """
+        settings: Dict[str, Any] = self.config["plex"]
+
+        server = Perplex.ConnectPlexMediaServer(self, client)
 
         sessions: List[Media] = server.sessions()
         active: Optional[Union[MovieSession, EpisodeSession, TrackSession]] = None
@@ -242,7 +256,7 @@ class Perplex:
         result: Dict[str, Any] = {}
 
         metadata: Optional[Dict[str, Any]] = Perplex.FetchMetadata(
-            self, active.title, active.year, "movie"
+            self, active.title, active.year, "movie", active
         )
 
         if minimal:
@@ -269,12 +283,18 @@ class Perplex:
             mId: int = metadata["id"]
             mType: str = metadata["media_type"]
             imgPath: str = metadata["poster_path"]
+            traktId: str = metadata.get("trakt")
 
-            result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}"
-
-            result["buttons"] = [
-                {"label": "TMDB", "url": f"https://themoviedb.org/{mType}/{mId}"}
-            ]
+            if traktId:
+                result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}" if imgPath else "tv"
+                result["buttons"] = [
+                    {"label": "Trakt.tv", "url": f"https://trakt.tv/{mType+'s'}/{mId}"}
+                ]
+            else:
+                result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}"
+                result["buttons"] = [
+                    {"label": "TMDB", "url": f"https://themoviedb.org/{mType}/{mId}"}
+                ]
 
         result["remaining"] = int((active.duration / 1000) - (active.viewOffset / 1000))
         result["imageText"] = active.title
@@ -289,7 +309,7 @@ class Perplex:
         result: Dict[str, Any] = {}
 
         metadata: Optional[Dict[str, Any]] = Perplex.FetchMetadata(
-            self, active.show().title, active.show().year, "tv"
+            self, active.show().title, active.show().year, "tv", active
         )
 
         result["primary"] = active.show().title
@@ -308,12 +328,18 @@ class Perplex:
             mId: int = metadata["id"]
             mType: str = metadata["media_type"]
             imgPath: str = metadata["poster_path"]
+            traktId: str = metadata.get("trakt")
 
-            result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}"
-
-            result["buttons"] = [
-                {"label": "TMDB", "url": f"https://themoviedb.org/{mType}/{mId}"}
-            ]
+            if traktId:
+                result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}" if imgPath else "tv"
+                result["buttons"] = [
+                    {"label": "Trakt.tv", "url": f"https://trakt.tv/{mType+'s'}/{mId}"}
+                ]
+            else:
+                result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}"
+                result["buttons"] = [
+                    {"label": "TMDB", "url": f"https://themoviedb.org/{mType}/{mId}"}
+                ]
 
         logger.trace(result)
 
@@ -338,34 +364,79 @@ class Perplex:
         return result
 
     def FetchMetadata(
-        self: Self, title: str, year: int, format: str
+        self: Self, title: str, year: int, format: str, session: Union[MovieSession, EpisodeSession]
     ) -> Optional[Dict[str, Any]]:
         """Fetch metadata for the provided title from TMDB."""
 
         settings: Dict[str, Any] = self.config["tmdb"]
         key: str = settings["apiKey"]
 
-        if not settings["enable"]:
-            logger.warning(f"TMDB disabled, some features will not be available")
+        if settings["enable"]:
+            # logger.debug(f"TMDB disabled, some features will not be available")
 
-            return
+            try:
+                res: Response = httpx.get(
+                    f"https://api.themoviedb.org/3/search/multi?api_key={key}&query={urllib.parse.quote(title)}"
+                )
+                res.raise_for_status()
 
-        try:
-            res: Response = httpx.get(
-                f"https://api.themoviedb.org/3/search/multi?api_key={key}&query={urllib.parse.quote(title)}"
-            )
-            res.raise_for_status()
+                logger.debug(f"(HTTP {res.status_code}) GET {res.url}")
+                logger.trace(res.text)
+            except Exception as e:
+                logger.error(f"Failed to fetch metadata for {title} ({year}), {e}")
 
-            logger.debug(f"(HTTP {res.status_code}) GET {res.url}")
-            logger.trace(res.text)
-        except Exception as e:
-            logger.error(f"Failed to fetch metadata for {title} ({year}), {e}")
-
-            return
+                return
 
         data: Dict[str, Any] = res.json()
 
+        session.guids = session.source().guids # https://github.com/pkkid/python-plexapi/issues/1214
+
+        if session.guids and self.config["trakt"]["enabled"] and self.config["trakt"]["apiKey"]: # We fall back on trakt
+            database: str = session.guids[0].id.split(":")[0]
+            guid = session.guids[0].id.split("//")[-1]
+            media_type: Literal['episode', 'movie'] = "episode" if isinstance(session, EpisodeSession) else "movie"
+            headers = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": self.config["trakt"]["apiKey"]}
+            try:
+                res: Response = httpx.get(
+                    f"https://api.trakt.tv/search/{database}/{guid}?type={media_type}", headers=headers
+                )
+                res.raise_for_status()
+
+                res = res.json()
+                logger.debug(f"(HTTP {res.status_code}) GET {res.url}")
+                logger.trace(res.text)
+            except Exception as e:
+                logger.error(f"Failed to fetch metadata for {title} ({year}) from Trakt, {e}")
+                res = None
+
+            if res:
+                tmdb_guid: int = res[0]["episode"]["ids"].get("tmdb")
+                poster_path = None
+                if tmdb_guid:
+
+                    url = f"https://api.themoviedb.org/3/search/{'tv' if media_type == 'episode' else 'movie'}?api_key={key}&query={urllib.parse.quote(title)}&first_air_date_year={year}&include_adult=true&page=1"
+
+                    res2: Response = httpx.get(url)
+                    res2.raise_for_status()
+
+                    if res2.json()["results"]:
+                        poster_path = res2.json()["results"][0]["poster_path"]
+
+                # We filter only the needed data with correct key names
+                return {"id": res[0]["episode"]["ids"]["trakt"], "media_type": media_type, "poster_path": poster_path, "trakt": True}
+            # else we fallback to default search method
+
+
+        if not settings["enable"]:
+            logger.warning("TMDB disabled, some features will not be available")
+
+            return
+
+        tmdb_guid: int = [guid.id.split("//")[-1] for guid in session.guids if "tmdb" in guid.id][0]
+
         for entry in data.get("results", []):
+            if entry["id"] == tmdb_guid: # We found the correct entry
+                break
             if format == "movie":
                 if entry["media_type"] != format:
                     continue
