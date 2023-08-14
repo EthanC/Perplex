@@ -9,7 +9,7 @@ Perplex is a Discord Rich Presence implementation for Plex.
 ## Features
 
 -   Modern and beautiful Rich Presence for movies, TV shows, and music.
--   [The Movie Database (TMDB)](https://www.themoviedb.org/) integration for enhanced media information.
+-   [The Movie Database (TMDB)](https://www.themoviedb.org/) or [Trakt.tv](https://www.trakt.tv/) integration for enhanced media information.
 -   Optional minimal mode for Rich Presence to hide granular information
 -   Lightweight console application that runs in the background.
 -   Support for two-factor authentication (2FA) at login.
@@ -25,6 +25,9 @@ Note: A Discord desktop client must be connected on the same device that Perplex
 2. Rename `config_example.json` to `config.json`, then provide the configurable values.
 3. Start Perplex: `python perplex.py`
 
+**Trakt**:
+You will need to create a new application on [Trakt.tv](https://trakt.tv/oauth/applications/new) to obtain a client ID. The application name and description can be anything you want. The application redirect URI must be `urn:ietf:wg:oauth:2.0:oob`.
+
 **Configurable Values:**
 
 -   `logging`:`severity`: Minimum [Loguru](https://loguru.readthedocs.io/en/stable/api/logger.html) severity level to display in the console (do not modify unless necessary).
@@ -35,5 +38,7 @@ Note: A Discord desktop client must be connected on the same device that Perplex
 -   `plex`:`users`: List of Plex users, in order of priority.
 -   `tmdb`:`enable`: `true` or `false` toggle for enhanced media information in Rich Presence.
 -   `tmdb`:`apiKey`: [TMDB API](https://www.themoviedb.org/settings/api) key (only used if `tmdb` `enable` is `true`).
+-   `trakt`:`enable`: `true` or `false` toggle for enhanced media information in Rich Presence.
+-   `trakt`:`clientId`: [Trakt API app](https://trakt.tv/oauth/applications/new) client ID (only used if `trakt` `enable` is `true`).
 -   `discord`:`appId`: Discord application ID (do not modify unless necessary).
 -   `discord`:`minimal`: `true` or `false` toggle for minimal media information in Rich Presence.
