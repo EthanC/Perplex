@@ -1,10 +1,11 @@
 import json
+import re
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
 from sys import exit, stderr
 from time import sleep
-from typing import Any, Dict, List, Optional, Self, Union
+from typing import Any, Dict, List, Literal, Optional, Self, Union
 
 import httpx
 from httpx import Response
@@ -12,7 +13,7 @@ from loguru import logger
 from plexapi.audio import TrackSession
 from plexapi.media import Media
 from plexapi.myplex import MyPlexAccount, MyPlexResource, PlexServer
-from plexapi.video import EpisodeSession, MovieSession
+from plexapi.video import EpisodeSession, MovieSession, Show
 from pypresence import Presence
 
 
@@ -36,6 +37,9 @@ class Perplex:
         plex: MyPlexAccount = Perplex.LoginPlex(self)
         discord: Presence = Perplex.LoginDiscord(self)
 
+        Perplex.timer = None
+        Perplex.viewOffset = None
+
         while True:
             session: Optional[
                 Union[MovieSession, EpisodeSession, TrackSession]
@@ -51,6 +55,10 @@ class Perplex:
                 elif type(session) is TrackSession:
                     status: Dict[str, Any] = Perplex.BuildTrackPresence(self, session)
 
+                if Perplex.IsInPause(self, session, plex):
+                    logger.info("Media session is paused")
+                    status: Dict[str, Any] = Perplex.BuildPausePresence(self, session)
+
                 success: bool = Perplex.SetPresence(self, discord, status)
 
                 # Reestablish a failed Discord Rich Presence connection
@@ -59,8 +67,8 @@ class Perplex:
             else:
                 try:
                     discord.clear()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.error(f"An error occured while clearing status, {e}")
 
             # Presence updates have a rate limit of 1 update per 15 seconds
             # https://discord.com/developers/docs/rich-presence/how-to#updating-presence
@@ -168,18 +176,12 @@ class Perplex:
 
         return client
 
-    def FetchSession(
+    def ConnectPlexMediaServer(
         self: Self, client: MyPlexAccount
-    ) -> Optional[Union[MovieSession, EpisodeSession, TrackSession]]:
-        """
-        Connect to the configured Plex Media Server and return the active
-        media session.
-        """
-
+    ) -> Optional[PlexServer]:
         settings: Dict[str, Any] = self.config["plex"]
 
         resource: Optional[MyPlexResource] = None
-        server: Optional[PlexServer] = None
 
         for entry in settings["servers"]:
             for result in client.resources():
@@ -197,13 +199,22 @@ class Perplex:
             exit(1)
 
         try:
-            server = resource.connect()
+            return resource.connect()
         except Exception as e:
             logger.critical(
                 f"Failed to connect to configured Plex Media Server ({resource.name}), {e}"
             )
 
-            exit(1)
+    def FetchSession(
+        self: Self, client: MyPlexAccount
+    ) -> Optional[Union[MovieSession, EpisodeSession, TrackSession]]:
+        """
+        Connect to the configured Plex Media Server and return the active
+        media session.
+        """
+        settings: Dict[str, Any] = self.config["plex"]
+
+        server = Perplex.ConnectPlexMediaServer(self, client)
 
         sessions: List[Media] = server.sessions()
         active: Optional[Union[MovieSession, EpisodeSession, TrackSession]] = None
@@ -234,6 +245,31 @@ class Perplex:
 
         logger.error(f"Fetched active media session of unknown type: {type(active)}")
 
+    def IsInPause(self: Self, active: Union[MovieSession, EpisodeSession, TrackSession], client: MyPlexAccount) -> bool:
+        """Check if the active media session is paused."""
+        active = Perplex.FetchSession(self, client)
+        if active:
+            result = Perplex.viewOffset == active.viewOffset
+            Perplex.viewOffset = active.viewOffset
+            return result
+
+    def BuildPausePresence(self: Self, active: Union[MovieSession, EpisodeSession, TrackSession]) -> Dict[str, Any]:
+        if isinstance(active, MovieSession):
+            result = Perplex.BuildMoviePresence(self, active)
+        elif isinstance(active, EpisodeSession):
+            result = Perplex.BuildEpisodePresence(self, active)
+        elif isinstance(active, TrackSession):
+            result = Perplex.BuildTrackPresence(self, active)
+        else:
+            logger.error(f"Unknown session type: {type(active)}")
+            return
+
+        progress = active.viewOffset / active.duration * 100
+        result["secondary"] = f"Paused ⏸︎ | {progress:.0f}%/{active.duration / 1000 / 60:.0f} min"
+        result["remaining"] = -1
+
+        return result
+
     def BuildMoviePresence(self: Self, active: MovieSession) -> Dict[str, Any]:
         """Build a Discord Rich Presence status for the active movie session."""
 
@@ -242,7 +278,7 @@ class Perplex:
         result: Dict[str, Any] = {}
 
         metadata: Optional[Dict[str, Any]] = Perplex.FetchMetadata(
-            self, active.title, active.year, "movie"
+            self, active.title, active.year, "movie", active
         )
 
         if minimal:
@@ -269,12 +305,18 @@ class Perplex:
             mId: int = metadata["id"]
             mType: str = metadata["media_type"]
             imgPath: str = metadata["poster_path"]
+            traktId: str = metadata.get("trakt")
 
-            result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}"
-
-            result["buttons"] = [
-                {"label": "TMDB", "url": f"https://themoviedb.org/{mType}/{mId}"}
-            ]
+            if traktId:
+                result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}" if imgPath else "tv"
+                result["buttons"] = [
+                    {"label": "Trakt.tv", "url": f"https://trakt.tv/{mType+'s'}/{mId}"}
+                ]
+            else:
+                result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}"
+                result["buttons"] = [
+                    {"label": "TMDB", "url": f"https://themoviedb.org/{mType}/{mId}"}
+                ]
 
         result["remaining"] = int((active.duration / 1000) - (active.viewOffset / 1000))
         result["imageText"] = active.title
@@ -289,7 +331,7 @@ class Perplex:
         result: Dict[str, Any] = {}
 
         metadata: Optional[Dict[str, Any]] = Perplex.FetchMetadata(
-            self, active.show().title, active.show().year, "tv"
+            self, active.show().title, active.show().year, "tv", active
         )
 
         result["primary"] = active.show().title
@@ -308,12 +350,18 @@ class Perplex:
             mId: int = metadata["id"]
             mType: str = metadata["media_type"]
             imgPath: str = metadata["poster_path"]
+            traktId: str = metadata.get("trakt")
 
-            result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}"
-
-            result["buttons"] = [
-                {"label": "TMDB", "url": f"https://themoviedb.org/{mType}/{mId}"}
-            ]
+            if traktId:
+                result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}" if imgPath else "tv"
+                result["buttons"] = [
+                    {"label": "Trakt.tv", "url": f"https://trakt.tv/{mType+'s'}/{mId}"}
+                ]
+            else:
+                result["image"] = f"https://image.tmdb.org/t/p/original{imgPath}"
+                result["buttons"] = [
+                    {"label": "TMDB", "url": f"https://themoviedb.org/{mType}/{mId}"}
+                ]
 
         logger.trace(result)
 
@@ -338,34 +386,105 @@ class Perplex:
         return result
 
     def FetchMetadata(
-        self: Self, title: str, year: int, format: str
+        self: Self, title: str, year: int, format: str, session: Union[MovieSession, EpisodeSession]
     ) -> Optional[Dict[str, Any]]:
         """Fetch metadata for the provided title from TMDB."""
 
         settings: Dict[str, Any] = self.config["tmdb"]
         key: str = settings["apiKey"]
 
-        if not settings["enable"]:
-            logger.warning(f"TMDB disabled, some features will not be available")
+        # if title has a "(year)" in it, removes it. https://github.com/EthanC/Perplex/issues/21
+        title = re.sub(r"\(\d{4}\)", "", title).strip()
 
-            return
+        if settings["enable"]:
 
-        try:
-            res: Response = httpx.get(
-                f"https://api.themoviedb.org/3/search/multi?api_key={key}&query={urllib.parse.quote(title)}"
-            )
-            res.raise_for_status()
+            try:
+                res: Response = httpx.get(
+                    f"https://api.themoviedb.org/3/search/multi?api_key={key}&query={urllib.parse.quote(title)}"
+                )
+                res.raise_for_status()
 
-            logger.debug(f"(HTTP {res.status_code}) GET {res.url}")
-            logger.trace(res.text)
-        except Exception as e:
-            logger.error(f"Failed to fetch metadata for {title} ({year}), {e}")
+                logger.debug(f"(HTTP {res.status_code}) GET {res.url}")
+                logger.trace(res.text)
+            except Exception as e:
+                logger.error(f"Failed to fetch metadata for {title} ({year}), {e}")
 
-            return
+                return
 
         data: Dict[str, Any] = res.json()
 
+        session.guids = session.source().guids # https://github.com/pkkid/python-plexapi/issues/1214
+        media_type: Literal['episode', 'movie'] = "episode" if isinstance(session, EpisodeSession) else "movie"
+
+        if session.guids and self.config["trakt"]["enabled"] and self.config["trakt"]["clientId"]: # if trakt is enabled we use it
+            database: str = session.guids[0].id.split(":")[0]
+            guid = session.guids[0].id.split("//")[-1]
+            headers = {"Content-Type": "application/json", "trakt-api-version": "2", "trakt-api-key": self.config["trakt"]["clientId"]}
+            try:
+                res: Response = httpx.get(
+                    f"https://api.trakt.tv/search/{database}/{guid}?type={media_type}", headers=headers
+                )
+                res.raise_for_status()
+
+                logger.debug(f"(HTTP {res.status_code}) GET {res.url}")
+                logger.trace(res.text)
+            except Exception as e:
+                logger.error(f"Failed to fetch metadata for {title} ({year}) from Trakt, {e}")
+                res = None
+
+            if (res:=res.json()):
+                tmdb_guid: int = res[0][media_type]["ids"].get("tmdb")
+                poster_path = None
+                if tmdb_guid:
+                    if media_type == "episode":
+                        url = f"https://api.themoviedb.org/3/tv/{res[0]['show']['ids']['tmdb']}?api_key={key}"
+                    else:
+                        url = f"https://api.themoviedb.org/3/movie/{tmdb_guid}?api_key={key}"
+
+                    res2: Response = httpx.get(url)
+                    res2.raise_for_status()
+
+                    if res2.json():
+                        if media_type == "episode":
+                            for season in res2.json()["seasons"]:
+                                if season["season_number"] == res[0]["episode"]["season"]:
+                                    poster_path = season["poster_path"]
+                                    break
+                        else:
+                            poster_path = res2.json()["poster_path"]
+
+                # We filter only the needed data with correct key names
+                return {"id": res[0][media_type]["ids"]["trakt"], "media_type": media_type, "poster_path": poster_path, "trakt": True}
+            # else we fallback to default search method
+
+
+        if not settings["enable"]:
+            logger.warning("TMDB disabled, some features will not be available")
+
+            return
+
+        if tmdb_guid:= [guid.id.split("//")[-1] for guid in session.guids if "tmdb" in guid.id][0]:
+            plex: PlexServer = Perplex.ConnectPlexMediaServer(self, Perplex.LoginPlex(self))
+            show: Show = plex.fetchItem(session.grandparentRatingKey)
+            if media_type == "episode":
+                if tmdb_guid:= [guid.id.split("//")[-1] for guid in show.guids if "tmdb" in guid.id][0]:
+                    url = f"https://api.themoviedb.org/3/tv/{tmdb_guid}?api_key={key}"
+            else:
+                url = f"https://api.themoviedb.org/3/movie/{tmdb_guid}?api_key={key}"
+
+            res: Response = httpx.get(url)
+            res.raise_for_status()
+
+            if res.json():
+                data = {"results": [res.json()]}
+                # we need to add the media_type to the data
+                data["results"][0]["media_type"] = "tv" if media_type == "episode" else "movie"
+        else:
+            tmdb_guid = None
+
         for entry in data.get("results", []):
+            if entry["id"] == tmdb_guid: # We found the correct entry
+                break
             if format == "movie":
                 if entry["media_type"] != format:
                     continue
@@ -395,16 +514,31 @@ class Perplex:
         )
 
         try:
-            client.update(
-                details=title,
-                state=data.get("secondary"),
-                end=int(datetime.now().timestamp() + data["remaining"]),
-                large_image=data["image"],
-                large_text=data["imageText"],
-                small_image="plex",
-                small_text="Plex",
-                buttons=data["buttons"],
-            )
+            if data["remaining"] == -1:
+                if Perplex.timer is None:
+                    Perplex.timer = int(datetime.now().timestamp())
+                client.update(
+                    details=title,
+                    state=data.get("secondary"),
+                    start=Perplex.timer,
+                    large_image=data["image"],
+                    large_text=data["imageText"],
+                    small_image="plex",
+                    small_text="Plex",
+                    buttons=data["buttons"],
+                )
+            else:
+                Perplex.timer = None
+                client.update(
+                    details=title,
+                    state=data.get("secondary"),
+                    end=int(datetime.now().timestamp() + data["remaining"]),
+                    large_image=data["image"],
+                    large_text=data["imageText"],
+                    small_image="plex",
+                    small_text="Plex",
+                    buttons=data["buttons"],
+                )
         except Exception as e:
             logger.error(f"Failed to set Discord Rich Presence to {title}, {e}")
 
